@@ -1,0 +1,15 @@
+language:
+  label:
+    fig: 'Figure '
+    tab: 'Tableau '
+    eq: 'Equation '
+    thm: 'Théorème '
+    lem: 'Lemme '
+    def: 'Définition '
+    cor: 'Corollaire '
+    prp: 'Proposition '
+    exm: 'Exemple '
+    exr: 'Exercice '
+    proof: 'Preuve. '
+    remark: 'Remarque. '
+    solution: 'Solution. '
