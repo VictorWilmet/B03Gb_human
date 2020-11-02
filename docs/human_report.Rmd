@@ -43,7 +43,6 @@ iris %>.%
     col.names = c("Espèces", "Moyenne [cm]", "Ecart-type [cm]"), align = "c")
 ```
 
-
 # Conclusions
 
 # Références

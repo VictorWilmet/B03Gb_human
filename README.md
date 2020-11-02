@@ -40,10 +40,12 @@ Les données sont téléchargeables au fomat csv via l’url suivant :
 Ce projet est un projet **individuel**, **court** et **libre** qui doit
 être **terminé pour la fin du module 3**.
 
-Réalisez un rapport d’analyse structuré sur une question de votre choix
-sur les données de biométrie humaine.
+Réalisez un court carnet d’analyse structuré sur une **question de votre
+choix** sur les données de biométrie humaine.
 
 # Consignes
+
+## Script R
 
 Dans un script R :
 
@@ -64,17 +66,30 @@ biometry <- readr::read_csv("https://docs.google.com/spreadsheets/d/1UfpZvx1_nd7
   - Réalisez une sauvegarde locale de votre jeu de données (vous pouvez
     apr exemple employer la fonction `write()`)
 
+## human\_notes
+
+Dans le fichier human\_notes, réalisez au moins 3 modèles linéaires en
+lien avec votre thématique. Réalisez des analyses complètes (N’oubliez
+donc pas l’analyse des résidus)
+
+## human\_report
+
+Ce fichier est un template au format R Markdown, un peu plus élaboré. Il
+est facilement possible de faire des citations des auteurs, des tableaux
+et des graphiques dans le texte.
+
 Dans le template Rmd :
 
-  - Consignez vos résultats dans un document structuré au format R
-    Markdorwn. Utilisez le template (`human.Rmd`) mis à votre
-    disposition dans le dossier `docs`. Ce document doit contenir :
+  - Sélectionnez votre modèle linéaire le plus adéquat et consignez cle
+    dans un document structuré au format R Markdorwn. Utilisez le
+    template (`human_report.Rmd`) mis à votre disposition dans le
+    dossier `docs`. Ce document doit contenir :
     
       - une courte introduction sur la question de recherche que vous
         vous posez.
       - une section analyse avec la description des données et la
-        réalisation du modèle linéaire généralisé. Chaque tableau et
-        graphique doit avoir une légende claire et précise comme montré
-        dans l’exemple. Tout comme dans les revues scientifiques, les
+        réalisation du modèle linéaire. Chaque tableau et graphique
+        doit avoir une légende claire et précise comme montré dans
+        l’exemple. Tout comme dans les revues scientifiques, les
         tableaux et graphiques doivent être cité dans le texte.
       - une section discussion et conclusion
