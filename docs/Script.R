@@ -15,7 +15,16 @@ biometry <- labelise(biometry, label=list(
   tour_hanche = "tour de hanche",
   tour_taille = "tour de taille",
   tour_poignet = "tour de poignet"
-  activite_phy = "tour"))
+  activite_phy = "activité physique"
+  conso_alcool = "consommation alcool"
+  fast_food = "fast food"
+  temps_assis = "temps assis"
+  temps_sommeil = "temps sommeil"
+  milieu_vie = "milieu de vie"
+  soda = "soda"
+  tabac = "tabac"
+  profession = "profession"
+  conso_eau = "consommation eau"))
 
 
 
