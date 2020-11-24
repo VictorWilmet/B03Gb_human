@@ -237,4 +237,36 @@ AIC(lm_pt)
 
 # Encore une fois, c'est le modèle polynomial qui semble le plus approprié pour représenter la relation
 
+# Essayons cette fois de représenter la situation du tour de taille en transformant les masses en variables qualitatives:
+
+biometry <- mutate(biometry,
+  bmi = masse/(taille/100)^2,
+  bmi_classe = case_when(
+    bmi < 18.5 ~ "Sous_poids",
+    bmi >= 18.5 & bmi < 25 ~ "Poids_normal",
+    bmi >= 25 & bmi < 30 ~ "Surpoids",
+    bmi >= 30 ~ "Obèse" ))
+
+biometry <- labelise(biometry,
+  label=list(bmi = "IMC", bmi_classe = "classe IMC"),
+  units=list(bmi = "Kg/cm²"))
+
+biometry$bmi_classe <- ordered(biometry$bmi_classe,
+  levels = c("Sous_poids", "Poids_normal", "Surpoids", "Obèse"))
+
+# Représentons graphiquement la répartition de ces nouvelles variables au sein de notre jeu de données:
+
+chart(biometry, ~ bmi_classe) +
+  geom_bar()
+
+biometry_glm <- glm(data = biometry, bmi ~ tour_taille,
+  family = binomial(link = logit))
+summary(biometry_glm)
+
+
+
+
+
+
+
 
