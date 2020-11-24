@@ -237,7 +237,7 @@ AIC(lm_pt)
 
 # Encore une fois, c'est le modèle polynomial qui semble le plus approprié pour représenter la relation
 
-# Essayons cette fois de représenter la situation du tour de taille en transformant les masses en variables qualitatives:
+# Essayons cette fois de représenter la relation entre les variables qualitatives que sont le fait de fumer ou non et la classe de l'indice de masse corporelle. Sont considérés comme fumeurs les individus qui consomment plus d'une cigarette/sem. :
 
 biometry <- mutate(biometry,
   bmi = masse/(taille/100)^2,
@@ -245,10 +245,16 @@ biometry <- mutate(biometry,
     bmi < 18.5 ~ "Sous_poids",
     bmi >= 18.5 & bmi < 25 ~ "Poids_normal",
     bmi >= 25 & bmi < 30 ~ "Surpoids",
-    bmi >= 30 ~ "Obèse" ))
+    bmi >= 30 ~ "Obèse" ),
+  fumeur = case_when(
+    tabac <= 1 ~ "0",
+    tabac > 1 ~ "1")
+  )
+
+biometry$fumeur <- as.factor(biometry$fumeur) 
 
 biometry <- labelise(biometry,
-  label=list(bmi = "IMC", bmi_classe = "classe IMC"),
+  label=list(bmi = "IMC", bmi_classe = "classe IMC", fumeur = "fumeur"),
   units=list(bmi = "Kg/cm²"))
 
 biometry$bmi_classe <- ordered(biometry$bmi_classe,
@@ -256,14 +262,30 @@ biometry$bmi_classe <- ordered(biometry$bmi_classe,
 
 # Représentons graphiquement la répartition de ces nouvelles variables au sein de notre jeu de données:
 
-chart(biometry, ~ bmi_classe) +
+chart(biometry, ~ bmi_classe %fill=% fumeur) +
   geom_bar()
 
-biometry_glm <- glm(data = biometry, bmi ~ tour_taille,
+# Malheureusement le nombre de données est insuffisant que pour pouvoir interpréter correctement la situation. Essayons alors de représenter la relation entre le milieu de vie (urbain ou non) et la classe de l'indice de masse corporelle.
+
+biometry <- mutate(biometry,
+  urbain = case_when(
+    milieu_vie == "urbain" ~ "1",
+    milieu_vie == "rural" ~ "0"))
+
+biometry$urbain <- as.factor(biometry$urbain) 
+
+# Représentons graphiquement la répartition de ces nouvelles variables au sein de notre jeu de données:
+
+chart(biometry, ~ bmi_classe %fill=% urbain) +
+  geom_bar()
+
+# Nous pouvons dès lors étudier grâce au modèle linéaire généralisé la situation en question :
+
+biometry_glm <- glm(data = biometry, urbain ~ bmi,
   family = binomial(link = logit))
 summary(biometry_glm)
 
-
+# Il n'y a apparemment pas de lien significatif entre le fait d'être en surpoids et le fait d'habiter en ville.
 
 
 
