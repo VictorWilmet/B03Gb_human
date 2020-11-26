@@ -32,7 +32,9 @@ Ce rapport synthétise l'étude réalisée par un étudiant de Ba2 sur un jeu de
 # Analyse
 
 ```{r}
-biometry <- readr::read_csv("biometrie_humaine_2019 - Feuille 1.csv", locale = readr::locale(decimal_mark = ","))
+biometry <- readr::read_csv("biometrie_humaine_2019 - Feuille 1.csv", locale = readr::locale(decimal_mark = ",")) %>.%
+  mutate(., tour_taille = as.numeric(tour_taille), tour_hanche = as.numeric(tour_hanche))
+  
 
 biometry <- drop_na(biometry)
 
@@ -78,30 +80,42 @@ biometry <- labelise(biometry,
 biometry <- filter(biometry, masse < 200)
 ```
 
-La colonne "masse" du jeu de données a subi une délétion des données trop peu plausibles qu'elle contennait (> 200 Kg). Une erreur d'encodage a manifestement eu lieu pour un certain nombre d'entre elles.
+La colonne "masse" du jeu de données a subi une délétion d'un ensemble de données aux valeurs implausibles (de 300 à plus de 1000 Kg). Une erreur d'encodage a manifestement eu lieu pour un certain nombre d'entre elles.
 
 Observons d'abord la forme des scatter plots formés par les objets d'analyse. On observe sur la figure \@ref(fig:prev) que dans ces deux cas, au vu de la forme dessinée par le nuage de points, une analyse d'une droite de régression linéaire semble bien appropriée. 
 
 ```{r prev}
-chart(biometry, masse ~ tour_hanche) +
-  geom_point()
+biometry <- filter(biometry, tour_hanche > 0.5, tour_taille > 0.5)
 
-chart(biometry, masse ~ tour_taille) +
-  geom_point()
+aa <- chart(biometry, masse ~ tour_hanche) +
+  geom_point() +
+    ggtitle("Relations entre la masse et les mesures sélectionnées sur les individus")
+
+ab <- chart(biometry, masse ~ tour_taille) +
+  geom_point() +
+    ggtitle(" ")
+
+ac <- combine_charts(list(aa, ab))
+
+ac
 ```
 
-Pour les deux relations, ont été essayées plusieurs modélisations : linéaire simple et polynomiale. Après calcul des valeurs du critaire d'Akaike (à postériori), il s'est avéré qu'une modélisation de type polynomiale semblait dans tous les cas représenter plus fidèlement la situation étudiée. Voici ces deux modélisations :
+Pour les deux relations, ont été essayées plusieurs modélisations : linéaire simple et polynomiale. Après vérification de la fiabilité des modèles, à l'aide d'outils de diagnostiques basés sur l'analyse des résidus, il s'est avéré qu'une modélisation de type linéaire simple semblait dans tous les cas représenter plus fidèlement la situation étudiée. Voici ces deux modélisations :
 
-```{r}
-summary(lm_ph <- lm(data = biometry, masse ~  tour_hanche + I(masse^2)))
-lm_ph %>.% (function (lm, model = lm[["model"]], vars = names(model))
+```{r sh}
+
+summary(lm_sh <- lm(data = biometry, masse ~ tour_hanche))
+lm_sh %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
   geom_point() +
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+  stat_smooth(method = "lm", formula = y ~ x))(.) +
+  ggtitle("Régression linéaire simple, masse en fonction du tour de hanche")
 ```
 
+Voici \@ref(tab:sh) une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de hanche. Nous pouvons voir que la valeur de R² est de 0.514, la valeur de l'ordonnée à l'origine vaut -33,272 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 107,57. Celle ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
+
 ```{r}
-e <- lm_ph %>.%
+a <- lm_sh %>.%
   chart(broom::augment(.), .resid ~ .fitted) +
   geom_point() +
   geom_hline(yintercept = 0) +
@@ -109,7 +123,7 @@ e <- lm_ph %>.%
   labs(x = "Fitted values", y = "Residuals") +
   ggtitle("Residuals vs Fitted")
 
-f <- lm_ph %>.%
+b <- lm_sh %>.%
   chart(broom::augment(.), sqrt(abs(.std.resid)) ~ .fitted) +
   geom_point() +
   geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
@@ -117,14 +131,14 @@ f <- lm_ph %>.%
     y = expression(bold(sqrt(abs("Standardized residuals"))))) +
   ggtitle("Scale-Location")
 
-g <- lm_ph %>.%
+c <- lm_sh %>.%
   chart(broom::augment(.), .cooksd ~ seq_along(.cooksd)) +
   geom_bar(stat = "identity") +
   geom_hline(yintercept = seq(0, 0.1, by = 0.05), colour = "darkgray") +
   labs(x = "Obs. number", y = "Cook's distance") +
   ggtitle("Cook's distance")
 
-h <- lm_ph %>.%
+d <- lm_sh %>.%
   chart(broom::augment(.), .std.resid ~ .hat %size=% .cooksd) +
   geom_point(show.legend = FALSE) +
   geom_smooth(se = FALSE, size = 0.5, method = "loess", formula = y ~ x) +
@@ -132,19 +146,24 @@ h <- lm_ph %>.%
   geom_hline(yintercept = 0) +
   labs(x = "Leverage", y = "Standardized residuals") +
   ggtitle("Residuals vs Leverage")
-combine_charts(list(e, f, g, h))
+combine_charts(list(a, b, c, d))
 ```
 
-```{r}
-summary(lm_pt <- lm(data = biometry, masse ~  tour_taille + I(masse^2)))
-lm_pt %>.% (function (lm, model = lm[["model"]], vars = names(model))
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une bonne distribution des résidus, de manière équilibrée de part et d’autre du zéro à l’ordonnée. Le graphique (B) montre également qu'aucune valeur en particulier de semble influencer la régression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous n’avons pas de valeur influençant particulièrement notre régression, car aucune distance de Cook calculée et apparaissant sur ce graphique n’a l’air de sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, met également en évidence l’influence qu’ont les sujets de l’étude sur le modèle de régression. Ici, aucun des points en question ne semble avoir suffisamment d’influence que pour tirer la droite de régression vers lui de manière abusive.
+
+```{r st}
+summary(lm_st <- lm(data = biometry, masse ~ tour_taille))
+lm_st %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
     geom_point() +
-    stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+    stat_smooth(method = "lm", formula = y ~ x))(.) +
+  ggtitle("Régression linéaire simple, masse en fonction du tour de taille")
 ```
 
+Voici \@ref(tab:st) une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de taille. Nous pouvons voir que la valeur de R² est de 0.65, la valeur de l'ordonnée à l'origine vaut -13,87 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 98,34. Celle-ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
+
 ```{r}
-m <- lm_pt %>.%
+i <- lm_st %>.%
   chart(broom::augment(.), .resid ~ .fitted) +
   geom_point() +
   geom_hline(yintercept = 0) +
@@ -152,7 +171,7 @@ m <- lm_pt %>.%
   labs(x = "Fitted values", y = "Residuals") +
   ggtitle("Residuals vs Fitted")
 
-n <- lm_pt %>.%
+j <- lm_st %>.%
   chart(broom::augment(.), sqrt(abs(.std.resid)) ~ .fitted) +
   geom_point() +
   geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
@@ -160,14 +179,14 @@ n <- lm_pt %>.%
     y = expression(bold(sqrt(abs("Standardized residuals"))))) +
   ggtitle("Scale-Location")
 
-o <- lm_pt %>.%
+k <- lm_st %>.%
   chart(broom::augment(.), .cooksd ~ seq_along(.cooksd)) +
   geom_bar(stat = "identity") +
   geom_hline(yintercept = seq(0, 0.1, by = 0.05), colour = "darkgray") +
   labs(x = "Obs. number", y = "Cook's distance") +
   ggtitle("Cook's distance")
 
-p <- lm_pt %>.%
+l <- lm_st %>.%
   chart(broom::augment(.), .std.resid ~ .hat %size=% .cooksd) +
   geom_point(show.legend = FALSE) +
   geom_smooth(se = FALSE, size = 0.5, method = "loess", formula = y ~ x) +
@@ -175,20 +194,20 @@ p <- lm_pt %>.%
   geom_hline(yintercept = 0) +
   labs(x = "Leverage", y = "Standardized residuals") +
   ggtitle("Residuals vs Leverage")
-combine_charts(list(m, n, o, p))
+combine_charts(list(i, j, k, l))
 ```
 
-La tableau \@ref(tab:kable) met en évidence ...
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une bonne distribution des résidus, de manière équilibrée de part et d’autre du zéro à l’ordonnée. Le graphique (B) montre également qu'aucune valeur en particulier de semble influencer la régression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous n’avons pas de valeur influençant particulièrement notre régression, car aucune distance de Cook calculée et apparaissant sur ce graphique n’a l’air de sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, met également en évidence l’influence qu’ont les sujets de l’étude sur le modèle de régression. Ici, aucun des points en question ne semble avoir suffisamment d’influence que pour tirer la droite de régression vers lui de manière abusive.
 
-```{r kable}
-iris %>.%
-  group_by(., species) %>.%
-  summarise(., pl_mean = round(mean(petal_length), 3), pl_sd = round(sd(petal_length), 3)) %>.%
-  knitr::kable(., 
-    caption = "Moyennes et écart-types [cm] de trois espèces d' Iris",
-    col.names = c("Espèces", "Moyenne [cm]", "Ecart-type [cm]"), align = "c")
-```
 
-# Conclusions
+# Discussion et conclusions
+
+Finalement, la valeur des critères d'Akaike associés aux deux derniers essais de modélisation n'a dû être calculée car c'est la régression linéaire simple qui doit être retenue dans les deux cas, après interprétation des outils de diagnostiques basés sur l'analyse des résidus.
 
 # Références
+
+https://docs.google.com/spreadsheets/d/1GJAGWjwNBtEGqQXqFcNxkrwcw-5n-gqwmiGAzxUZrxg/edit?usp=sharing
+
+https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qko7k/edit?usp=sharing
+
+https://docs.google.com/spreadsheets/d/e/2PACX-1vSfY7b0ICF64uv9vIYi8Jg38Rw3pKvLHC5TW0XOZYVQ4ce2dTmXGM5Cm8J922MsYm_fk75DKOK2wC4b/pub?output=csv

@@ -20,7 +20,9 @@ https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qk
 # Analyses
 
 ```{r}
-biometry <- readr::read_csv("biometrie_humaine_2019 - Feuille 1.csv", locale = readr::locale(decimal_mark = ","))
+biometry <- readr::read_csv("biometrie_humaine_2019 - Feuille 1.csv", locale = readr::locale(decimal_mark = ",")) %>.%
+  mutate(., tour_taille = as.numeric(tour_taille), tour_hanche = as.numeric(tour_hanche))
+  
 
 biometry <- drop_na(biometry)
 
@@ -62,15 +64,13 @@ biometry <- labelise(biometry,
     tabac = "cig/sem",
     conso_eau = "l/sem")
     )
-```
 
-Retirons de la colonne "masse" les données implausibles (> 200 Kg). Une erreur d'encodage a manifestement eu lieu pour un certain nombre d'entre elles.
-
-```{r}
 biometry <- filter(biometry, masse < 200)
 ```
 
-Ma thématique: étudier la relation entre la masse des individus de l'étude avec leur tour de hanche ou avec leur tour de taille
+La colonne "masse" du jeu de données a subi une délétion d'un ensemble de données aux valeurs implausibles (de 300 à plus de 1000 Kg). Une erreur d'encodage a manifestement eu lieu pour un certain nombre d'entre elles.
+
+La thématique: étudier la relation entre la masse des individus de l'étude avec leur tour de hanche ou avec leur tour de taille
 
 Observons d'abord la forme du scatter plot obtenu dans chacun des deux cas
 
@@ -82,15 +82,35 @@ chart(biometry, masse ~ tour_taille) +
   geom_point()
 ```
 
-Dans les deux cas, une analyse d'une droite de régression linéaire semble appropriée. Essayons plusieurs modélisations (linéaire simple, polynomiale) et voyons lequel semble mieux représenter le nuage de points obtenu
+Une donnée étrange semble avoir le potentiel de compromettre totalement l'analyse des deux cas de figure (un individu a rapporté un tour de taille de 40 cm, ce qui est franchement improbable). Supprimons cette donnée et voyons à nouveau les nuages de points.
 
 ```{r}
+biometry <- filter(biometry, tour_hanche > 0.5, tour_taille > 0.5)
+
+aa <- chart(biometry, masse ~ tour_hanche) +
+  geom_point()
+
+ab <- chart(biometry, masse ~ tour_taille) +
+  geom_point() +
+
+ac <- combine_charts(list(aa, ab))
+
+ac
+```
+
+Les données sélectionnées sont maintenant prêtes à être analysées. Dans les deux cas, une droite de régression linéaire semble appropriée. Essayons plusieurs modélisations (linéaire simple, polynomiale) et voyons lequel semble mieux représenter le nuage de points obtenu.
+
+```{r}
+
 summary(lm_sh <- lm(data = biometry, masse ~ tour_hanche))
 lm_sh %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
   geom_point() +
-  stat_smooth(method = "lm", formula = y ~ x))(.)
+  stat_smooth(method = "lm", formula = y ~ x))(.) +
+  ggtitle("Régression linéaire simple, masse en fonction du tour de hanche")
 ```
+
+Voici une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de hanche. Nous pouvons voir que la valeur de R² est de 0.514, la valeur de l'ordonnée à l'origine vaut -33,272 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 107,57. Celle ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
 
 ```{r}
 a <- lm_sh %>.%
@@ -127,6 +147,8 @@ d <- lm_sh %>.%
 combine_charts(list(a, b, c, d))
 ```
 
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une bonne distribution des résidus, de manière équilibrée de part et d’autre du zéro à l’ordonnée. Le graphique (B) montre également qu'aucune valeur en particulier de semble influencer la régression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous n’avons pas de valeur influençant particulièrement notre régression, car aucune distance de Cook calculée et apparaissant sur ce graphique n’a l’air de sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, met également en évidence l’influence qu’ont les sujets de l’étude sur le modèle de régression. Ici, aucun des points en question ne semble avoir suffisamment d’influence que pour tirer la droite de régression vers lui de manière abusive.
+
 Essayons maintenant de représenter la même situation mais avec une régression polynomiale. Les critères d'Akaike seront ensuite calculés afin de déterminer quel modèle est le mieux adapté.
 
 ```{r}
@@ -134,8 +156,11 @@ summary(lm_ph <- lm(data = biometry, masse ~  tour_hanche + I(masse^2)))
 lm_ph %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
   geom_point() +
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.) +
+  ggtitle("Régression linéaire polynomiale, masse en fonction du tour de hanche")
 ```
+
+Voici une modélisation graphique de la régression polynomiale mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de hanche. Nous pouvons voir que la valeur de R² est cette fois de 0.9832. A première vue, il est difficile de voir si cette modélisation semble mieux représenter la tendance du nuage de points que le précédent. La p-value est inférieure à 2.2e-16 dans ce cas également. Vérifions la fiabilité de notre modélisation en effectuant quelques analyses sur les résidus.
 
 ```{r}
 e <- lm_ph %>.%
@@ -172,14 +197,16 @@ h <- lm_ph %>.%
 combine_charts(list(e, f, g, h))
 ```
 
-Calculons la valeur des critères d'Akaike associés aux deux dernièrs essais de modélisation :
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une assez mauvaise distribution des résidus, qui semblent répondre à une fonction extérieure, de part et d’autre du zéro à l’ordonnée. Le graphique (B) accentue encore cette impression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous avons deux valeurs influençant particulièrement notre régression, car leur distance de Cook calculée et apparaissant sur ce graphique semble sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, montre clairement que certains des sujets de l’étude sur le modèle de régression semblent avoir suffisamment d’influence que pour tirer la droite de régression vers eux de manière abusive.
+
+La valeur des critères d'Akaike associés aux deux derniers essais de modélisation a été calculée, mais malgré les résultats obtenus, c'est la régression linéaire simple qui doit être retenue.
 
 ```{r}
 AIC(lm_sh)
 AIC(lm_ph)
 ```
 
-Le modèle polynomial semble plus approprié pour représenter la relation entre la masse des individus et leur tour de hanche
+Le modèle polynomial semble moins approprié pour représenter la relation entre la masse des individus et leur tour de hanche.
 
 Regardons maintenant ce qu'il en est du tour de taille :
 
@@ -188,8 +215,11 @@ summary(lm_st <- lm(data = biometry, masse ~ tour_taille))
 lm_st %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
     geom_point() +
-    stat_smooth(method = "lm", formula = y ~ x))(.)
+    stat_smooth(method = "lm", formula = y ~ x))(.) +
+  ggtitle("Régression linéaire simple, masse en fonction du tour de taille")
 ```
+
+Voici une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de taille. Nous pouvons voir que la valeur de R² est de 0.65, la valeur de l'ordonnée à l'origine vaut -13,87 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 98,34. Celle-ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
 
 ```{r}
 i <- lm_st %>.%
@@ -226,6 +256,8 @@ l <- lm_st %>.%
 combine_charts(list(i, j, k, l))
 ```
 
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une bonne distribution des résidus, de manière équilibrée de part et d’autre du zéro à l’ordonnée. Le graphique (B) montre également qu'aucune valeur en particulier de semble influencer la régression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous n’avons pas de valeur influençant particulièrement notre régression, car aucune distance de Cook calculée et apparaissant sur ce graphique n’a l’air de sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, met également en évidence l’influence qu’ont les sujets de l’étude sur le modèle de régression. Ici, aucun des points en question ne semble avoir suffisamment d’influence que pour tirer la droite de régression vers lui de manière abusive.
+
 Essayons maintenant de représenter la même situation mais avec une régression polynomiale. Les critères d'Akaike seront ensuite calculés afin de déterminer quel modèle est le mieux adapté.
 
 ```{r}
@@ -233,8 +265,11 @@ summary(lm_pt <- lm(data = biometry, masse ~  tour_taille + I(masse^2)))
 lm_pt %>.% (function (lm, model = lm[["model"]], vars = names(model))
   chart(model, aes_string(x = vars[2], y = vars[1])) +
     geom_point() +
-    stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+    stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.) +
+  ggtitle("Régression linéaire polynomiale, masse en fonction du tour de taille")
 ```
+
+Voici une modélisation graphique de la régression polynomiale mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de taille. Nous pouvons voir que la valeur de R² est cette fois de 0.9834. A première vue, il est difficile de voir si cette modélisation semble mieux représenter la tendance du nuage de points que le précédent. La p-value est inférieure à 2.2e-16 dans ce cas également. Vérifions la fiabilité de notre modélisation en effectuant quelques analyses sur les résidus.
 
 ```{r}
 m <- lm_pt %>.%
@@ -271,14 +306,16 @@ p <- lm_pt %>.%
 combine_charts(list(m, n, o, p))
 ```
 
-Calculons la valeur des critères d'Akaike associés aux deux dernièrs essais de modélisation :
+Le premier graphique (A) permet de vérifier si la distribution des résidus est homogène. Nous pouvons observer ici une assez mauvaise distribution des résidus, qui semblent répondre à une fonction extérieure, de part et d’autre du zéro à l’ordonnée. Le graphique (B) accentue encore cette impression. Le troisième graphique d’analyse des résidus (C) montre l’influence qu’ont chacun des individus sur la régression linéaire diagnostiquée. Nous pouvons observer dans ce cas que nous avons deux valeurs influençant particulièrement notre régression, car leur distance de Cook calculée et apparaissant sur ce graphique semble sortir grossièrement du lot. Le dernier graphique (D), utilisant l’effet de ‘’Leverage’’, montre clairement que certains des sujets de l’étude sur le modèle de régression semblent avoir suffisamment d’influence que pour tirer la droite de régression vers eux de manière abusive
+
+La valeur des critères d'Akaike associés aux deux derniers essais de modélisation a été calculée, mais malgré les résultats obtenus, c'est la régression linéaire simple qui doit être retenue.
 
 ```{r}
 AIC(lm_st)
 AIC(lm_pt)
 ```
 
-Encore une fois, c'est le modèle polynomial qui semble le plus approprié pour représenter la relation
+Encore une fois, c'est le modèle linéaire simple qui semble le plus approprié pour représenter la relation étudiée.
 
 Essayons cette fois de représenter la relation entre les variables qualitatives que sont le fait de fumer ou non et la classe de l'indice de masse corporelle. Sont considérés comme fumeurs les individus qui consomment plus d'une cigarette/sem. :
 
