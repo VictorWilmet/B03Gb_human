@@ -1,10 +1,12 @@
 ---
-title: "Rapport Scientifique"
-author: "Nom des auteurs"
+title: "Rapport Biometrie Humaine"
+author: "Wilmet Victor"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 bibliography: references.bib
 lang: "fr"
-output: bookdown::html_document2 # peut être remplacé par pdf_document2,...
+output: 
+  bookdown::html_document2:
+    fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
