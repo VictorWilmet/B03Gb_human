@@ -15,21 +15,167 @@ SciViews::R
 
 # Résumé {-}
 
+Ce rapport est une synthèse de l'étude réalisée par un étudiant sur un jeu de donnée de biométrie humaine dans le cadre du cours de SDD Charlaroi Ba2. Cette étude a pour but, en utilisant des outils de modélisation linéaire, de modéliser la relation entre la masse d'individus et différentes mesures corporelles.
+
 # Introduction
 
-blablabla [@Anderson1935]
+Un an après la collecte de données biométriques humaines par des étudiants dans le cadre du cours de science des données de l'université de Charleroi, une nouvelle analyse de ces données a été réalisée à l'aide de nouveaux outils (en lien avec le modèle linéaire). 
+
+Les données utilisées au cours de cette étude sont disponibles au fomat csv à l'adresse suivante : 
+https://docs.google.com/spreadsheets/d/e/2PACX-1vSfY7b0ICF64uv9vIYi8Jg38Rw3pKvLHC5TW0XOZYVQ4ce2dTmXGM5Cm8J922MsYm_fk75DKOK2wC4b/pub?output=csv
+
+Les métadonnées associées au jeu de données sont disponnibles sur ce googledoc : 
+https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qko7k/edit?usp=sharing
+
+Ce rapport synthétise l'étude réalisée par un étudiant de Ba2 sur un jeu de donnée de biométrie humaine et a pour but, en utilisant des outils de modélisation linéaire, de modéliser la relation entre la masse d'individus et différentes mesures corporelles (le tour de taille et le tour de hanche).
 
 # Analyse
 
-```{r import_data}
-iris <- read("iris", package = "datasets", lang = "fr")
+```{r}
+biometry <- readr::read_csv("biometrie_humaine_2019 - Feuille 1.csv", locale = readr::locale(decimal_mark = ","))
+
+biometry <- drop_na(biometry)
+
+biometry <- labelise(biometry, 
+  label=list(
+    genre = "genre",
+    taille = "taille",
+    age = "age",
+    masse = "masse",
+    masse_perso = "masse personne",
+    masse_ref = "masse référence",
+    tour_hanche = "tour de hanche",
+    tour_taille = "tour de taille",
+    tour_poignet = "tour de poignet",
+    activite_phy = "activité physique",
+    conso_alcool = "consommation alcool",
+    fast_food = "fast food",
+    temps_assis = "temps assis",
+    temps_sommeil = "temps sommeil",
+    milieu_vie = "milieu de vie",
+    soda = "soda",
+    tabac = "tabac",
+    profession = "profession",
+    conso_eau = "consommation eau"),
+  units=list(
+    taille = "cm",
+    age = "ans",
+    masse = "Kg",
+    masse_perso = "Kg",
+    masse_ref = "Kg",
+    tour_hanche = "m",
+    tour_taille = "m",
+    tour_poignet = "m",
+    activite_phy = "min/sem",
+    conso_alcool = "verres/sem",
+    temps_assis = "h/jours",
+    temps_sommeil = "h/nuits",
+    soda = "l/sem",
+    tabac = "cig/sem",
+    conso_eau = "l/sem")
+    )
+
+biometry <- filter(biometry, masse < 200)
 ```
 
-On observe sur la figure \@ref(fig:is)
+La colonne "masse" du jeu de données a subi une délétion des données trop peu plausibles qu'elle contennait (> 200 Kg). Une erreur d'encodage a manifestement eu lieu pour un certain nombre d'entre elles.
 
-```{r is, fig.cap= "Variation de la longueur des pétales [cm] en fonction de la longueur des sépales [cm] en fonction de trois espèces d'Iris"}
-chart(iris, petal_length ~ sepal_length %col=% species) +
+Observons d'abord la forme des scatter plots formés par les objets d'analyse. On observe sur la figure \@ref(fig:prev) que dans ces deux cas, au vu de la forme dessinée par le nuage de points, une analyse d'une droite de régression linéaire semble bien appropriée. 
+
+```{r prev}
+chart(biometry, masse ~ tour_hanche) +
   geom_point()
+
+chart(biometry, masse ~ tour_taille) +
+  geom_point()
+```
+
+Pour les deux relations, ont été essayées plusieurs modélisations : linéaire simple et polynomiale. Après calcul des valeurs du critaire d'Akaike (à postériori), il s'est avéré qu'une modélisation de type polynomiale semblait dans tous les cas représenter plus fidèlement la situation étudiée. Voici ces deux modélisations :
+
+```{r}
+summary(lm_ph <- lm(data = biometry, masse ~  tour_hanche + I(masse^2)))
+lm_ph %>.% (function (lm, model = lm[["model"]], vars = names(model))
+  chart(model, aes_string(x = vars[2], y = vars[1])) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+```
+
+```{r}
+e <- lm_ph %>.%
+  chart(broom::augment(.), .resid ~ .fitted) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+  labs(x = "Fitted values", y = "Residuals") +
+  ggtitle("Residuals vs Fitted")
+
+f <- lm_ph %>.%
+  chart(broom::augment(.), sqrt(abs(.std.resid)) ~ .fitted) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+  labs(x = "Fitted values",
+    y = expression(bold(sqrt(abs("Standardized residuals"))))) +
+  ggtitle("Scale-Location")
+
+g <- lm_ph %>.%
+  chart(broom::augment(.), .cooksd ~ seq_along(.cooksd)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = seq(0, 0.1, by = 0.05), colour = "darkgray") +
+  labs(x = "Obs. number", y = "Cook's distance") +
+  ggtitle("Cook's distance")
+
+h <- lm_ph %>.%
+  chart(broom::augment(.), .std.resid ~ .hat %size=% .cooksd) +
+  geom_point(show.legend = FALSE) +
+  geom_smooth(se = FALSE, size = 0.5, method = "loess", formula = y ~ x) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  labs(x = "Leverage", y = "Standardized residuals") +
+  ggtitle("Residuals vs Leverage")
+combine_charts(list(e, f, g, h))
+```
+
+```{r}
+summary(lm_pt <- lm(data = biometry, masse ~  tour_taille + I(masse^2)))
+lm_pt %>.% (function (lm, model = lm[["model"]], vars = names(model))
+  chart(model, aes_string(x = vars[2], y = vars[1])) +
+    geom_point() +
+    stat_smooth(method = "lm", formula = y ~ x + I(x^2)))(.)
+```
+
+```{r}
+m <- lm_pt %>.%
+  chart(broom::augment(.), .resid ~ .fitted) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+  labs(x = "Fitted values", y = "Residuals") +
+  ggtitle("Residuals vs Fitted")
+
+n <- lm_pt %>.%
+  chart(broom::augment(.), sqrt(abs(.std.resid)) ~ .fitted) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "loess", formula = y ~ x) +
+  labs(x = "Fitted values",
+    y = expression(bold(sqrt(abs("Standardized residuals"))))) +
+  ggtitle("Scale-Location")
+
+o <- lm_pt %>.%
+  chart(broom::augment(.), .cooksd ~ seq_along(.cooksd)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = seq(0, 0.1, by = 0.05), colour = "darkgray") +
+  labs(x = "Obs. number", y = "Cook's distance") +
+  ggtitle("Cook's distance")
+
+p <- lm_pt %>.%
+  chart(broom::augment(.), .std.resid ~ .hat %size=% .cooksd) +
+  geom_point(show.legend = FALSE) +
+  geom_smooth(se = FALSE, size = 0.5, method = "loess", formula = y ~ x) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  labs(x = "Leverage", y = "Standardized residuals") +
+  ggtitle("Residuals vs Leverage")
+combine_charts(list(m, n, o, p))
 ```
 
 La tableau \@ref(tab:kable) met en évidence ...
