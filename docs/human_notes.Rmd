@@ -8,9 +8,13 @@ SciViews::R
 
 # Introduction
 
-<!---
-Cette section doit contenir une courte introduction sur le sujet dont va traiter ce carnet de notes
---->
+Un an après la collecte de données biométriques humaines par des étudiants dans le cadre du cours de science des données, une nouvelle analyse de ces données a été réalisée à l'aide de nouveaux outils (en lien avec le modèle linéaire). 
+
+Les données utilisées au cours de cette étude sont disponibles au fomat csv à l'adresse suivante : 
+https://docs.google.com/spreadsheets/d/e/2PACX-1vSfY7b0ICF64uv9vIYi8Jg38Rw3pKvLHC5TW0XOZYVQ4ce2dTmXGM5Cm8J922MsYm_fk75DKOK2wC4b/pub?output=csv
+
+Les métadonnées associées au jeu de données sont disponnibles sur ce googledoc : 
+https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qko7k/edit?usp=sharing
 
 # Analyses
 
