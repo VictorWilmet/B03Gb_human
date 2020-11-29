@@ -91,7 +91,7 @@ aa <- chart(biometry, masse ~ tour_hanche) +
   geom_point()
 
 ab <- chart(biometry, masse ~ tour_taille) +
-  geom_point() +
+  geom_point() 
 
 ac <- combine_charts(list(aa, ab))
 

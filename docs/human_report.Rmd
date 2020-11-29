@@ -114,7 +114,7 @@ lm_sh %>.% (function (lm, model = lm[["model"]], vars = names(model))
   ggtitle("Régression linéaire simple, masse en fonction du tour de hanche")
 ```
 
-Voici \@ref(tab:sh) une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de hanche. Nous pouvons voir que la valeur de R² est de 0.514, la valeur de l'ordonnée à l'origine vaut -33,272 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 107,57. Celle ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
+Voici \@ref(fig:sh) une modélisation graphique de la régression linéaire mettant en évidence la relation entre la masse des individus de l'étude avec leur tour de hanche. Nous pouvons voir que la valeur de R² est de 0.514, la valeur de l'ordonnée à l'origine vaut -33,272 et que la pente de la droite de régression linéaire (en bleu foncé) vaut 107,57. Celle ci est contenue dans une enveloppe de confiance qui est en bleu clair. La p-value obtenue pour cette modélisation est inférieure à 2,2e-16, au seuil alpha fixé à 0,05. A première vue, cette modélisation semble bien représenter la tendance du nuage de points. Vérifions cela en effectuant quelques analyses sur les résidus.
 
 ```{r}
 a <- lm_sh %>.%
@@ -207,9 +207,3 @@ Le premier graphique (A) permet de vérifier si la distribution des résidus est
 Finalement, la valeur des critères d'Akaike associés aux deux derniers essais de modélisation n'a dû être calculée car c'est la régression linéaire simple qui doit être retenue dans les deux cas, après interprétation des outils de diagnostiques basés sur l'analyse des résidus.
 
 # Références
-
-https://docs.google.com/spreadsheets/d/1GJAGWjwNBtEGqQXqFcNxkrwcw-5n-gqwmiGAzxUZrxg/edit?usp=sharing
-
-https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qko7k/edit?usp=sharing
-
-https://docs.google.com/spreadsheets/d/e/2PACX-1vSfY7b0ICF64uv9vIYi8Jg38Rw3pKvLHC5TW0XOZYVQ4ce2dTmXGM5Cm8J922MsYm_fk75DKOK2wC4b/pub?output=csv
