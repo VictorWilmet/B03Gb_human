@@ -31,6 +31,10 @@ https://docs.google.com/spreadsheets/d/1j55bB9YEAVbS4eRE-i6L-NEYhHXua-dxs-aQr_qk
 
 Ce rapport synthétise l'étude réalisée par un étudiant de Ba2 sur un jeu de donnée de biométrie humaine et a pour but, en utilisant des outils de modélisation linéaire, de modéliser la relation entre la masse d'individus et différentes mesures corporelles (le tour de taille et le tour de hanche).
 
+[@BiometrieHumaine2019]
+
+[@BiometrieHumaineMetadata]
+
 # Analyse
 
 ```{r}
