@@ -93,11 +93,11 @@ Observons d'abord la forme des scatter plots formés par les objets d'analyse. O
 ```{r prev}
 biometry <- filter(biometry, tour_hanche > 0.5, tour_taille > 0.5)
 
-aa <- chart(biometry, masse ~ tour_hanche) +
+aa <- ggplot(data = biometry, mapping = aes(x = tour_hanche, y = masse)) +
   geom_point() +
     ggtitle("Relations entre la masse et les mesures sélectionnées sur les individus")
 
-ab <- chart(biometry, masse ~ tour_taille) +
+ab <- ggplot(data = biometry, mapping = aes(x = tour_taille, y = masse)) +
   geom_point() +
     ggtitle(" ")
 
